@@ -1,5 +1,5 @@
 // Define your base URL here
-const BASE_URL = "http://localhost:5000/api/v1";
+const BASE_URL = "https://bachat-track-backend.onrender.com/api/v1";
 
 // Auth endpoints
 export const AUTH_API = {
