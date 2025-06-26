@@ -1,4 +1,3 @@
-
 import React, { useState, useContext } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
@@ -8,12 +7,32 @@ import BACKGROUND_LOGIN_SIGNUP from '../../img/BACKGROUND_LOGIN_SIGNUP.png';
 const Signup = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [age, setAge] = useState('');
+  const [role, setRole] = useState('Student');
+  const [profilePhoto, setProfilePhoto] = useState(null);
   const [error, setError] = useState('');
   const { signup } = useContext(AuthContext);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    signup(username, password).catch(err => {
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+    if (!age || isNaN(age) || Number(age) <= 18) {
+      setError('Age must be a number greater than 18.');
+      return;
+    }
+    const formData = new FormData();
+    formData.append('username', username);
+    formData.append('password', password);
+    formData.append('role', role);
+    formData.append('age', age);
+    if (profilePhoto) {
+      formData.append('profilePhoto', profilePhoto);
+    }
+    signup(formData).catch(err => {
       setError('Signup failed. Please try again.');
     });
   };
@@ -87,15 +106,20 @@ const Signup = () => {
 
   return (
     <div style={styles.container}>
-       <div style={styles.logo}>
-       <img
+      <div style={styles.logo}>
+        <img
           src={logo_kharcha_guru}
           alt=""
           style={styles.logoImg}
-          />
-        </div>
-        <form style={styles.form} onSubmit={handleSubmit}>
+        />
+      </div>
+      <form style={styles.form} onSubmit={handleSubmit}>
         <h2 style={styles.heading}>New User</h2>
+        <div style={{ marginBottom: '10px', textAlign: 'center' }}>
+          <p style={styles.link}>
+            Already have an account? <Link to="/login" style={{ color: '#007bff' }}>Login here</Link>
+          </p>
+        </div>
         <input
           type="text"
           placeholder="Username"
@@ -104,10 +128,39 @@ const Signup = () => {
           style={styles.input}
         />
         <input
+          type="number"
+          placeholder="Age"
+          value={age}
+          onChange={(e) => setAge(e.target.value)}
+          style={styles.input}
+        />
+        <select
+          value={role}
+          onChange={(e) => setRole(e.target.value)}
+          style={styles.input}
+        >
+          <option value="Student">Student</option>
+          <option value="Job">Job</option>
+          <option value="Other">Other</option>
+        </select>
+        <input
           type="password"
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          style={styles.input}
+        />
+        <input
+          type="password"
+          placeholder="Confirm Password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          style={styles.input}
+        />
+        <input
+          type="file"
+          accept="image/*"
+          onChange={e => setProfilePhoto(e.target.files[0])}
           style={styles.input}
         />
         <button type="submit" style={styles.button}>
@@ -115,9 +168,6 @@ const Signup = () => {
         </button>
         {error && <p style={styles.error}>{error}</p>}
       </form>
-      <p style={styles.link}>
-        Already have an account? <Link to="/login" style={{ color: '#007bff' }}>Login here</Link>
-      </p>
     </div>
   );
 };

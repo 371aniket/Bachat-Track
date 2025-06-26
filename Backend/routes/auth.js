@@ -1,15 +1,35 @@
-
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { authMiddleware } = require('../middleware/auth');
 const router = express.Router();
+const multer = require('multer');
+const path = require('path');
 
-router.post('/signup', async (req, res) => {
-  const { username, password } = req.body;
+// Set up multer for file uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, path.join(__dirname, '../public/uploads'));
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + '-' + file.originalname);
+  }
+});
+const upload = multer({ storage: storage });
 
-  if (!username || !password) {
-    return res.status(400).json({ error: 'Username (email) and password are required' });
+// Serve static files for uploaded images
+const expressApp = require('express')();
+expressApp.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
+
+router.post('/signup', upload.single('profilePhoto'), async (req, res) => {
+  const { username, password, role, age } = req.body;
+  let profilePhoto = req.file ? `/uploads/${req.file.filename}` : undefined;
+
+  if (!username || !password || !role || !age) {
+    return res.status(400).json({ error: 'Username (email), password, role, and age are required' });
+  }
+  if (isNaN(age) || Number(age) <= 18) {
+    return res.status(400).json({ error: 'Age must be greater than 18' });
   }
 
   try {
@@ -17,7 +37,10 @@ router.post('/signup', async (req, res) => {
     const newUser = new User({
       email: username, // Assuming username is actually the email
       username: username.split('@')[0], // Use part of email as username or set differently
-      password
+      password,
+      role,
+      age,
+      profilePhoto
     });
 
     await newUser.save();

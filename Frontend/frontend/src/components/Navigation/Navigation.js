@@ -7,7 +7,7 @@ import { menuItems } from '../../utils/menuItems';
 import { AuthContext } from '../../context/AuthContext';
 
 function Navigation({ active, setActive }) {
-    const { signOut } = useContext(AuthContext);
+    const { signOut, user } = useContext(AuthContext);
     const navigate = useNavigate();
 
     const handleSignOut = () => {
@@ -19,9 +19,9 @@ function Navigation({ active, setActive }) {
         <NavStyled>
             {/* Creating a user container */}
             <div className="user-con">
-                <img src={avatar} alt="User Avatar" />
+                <img src={user?.profilePhoto ? user.profilePhoto : avatar} alt="User Avatar" />
                 <div className="text">
-                    <h2>Nikki</h2>
+                    <h2>{user?.username || 'User'}</h2>
                     <p>Your Money</p>
                 </div>
             </div>

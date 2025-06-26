@@ -1,35 +1,51 @@
 import React, { createContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { AUTH_API } from '../api/apiEndpoints'; // We'll fix this too
+import { AUTH_API } from '../api/apiEndpoints';
 
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [token, setToken] = useState(localStorage.getItem('token'));
   const navigate = useNavigate();
 
-  // Set base URL for Axios once
   axios.defaults.baseURL = 'https://bachat-track-backend.onrender.com';
 
+  // Axios interceptor to attach token to every request
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const requestInterceptor = axios.interceptors.request.use(
+      (config) => {
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+      },
+      (error) => Promise.reject(error)
+    );
+    return () => {
+      axios.interceptors.request.eject(requestInterceptor);
+    };
+  }, [token]);
+
+  useEffect(() => {
     if (token) {
       fetchUserProfile(token);
     }
-  }, []);
+  }, [token]);
 
-  const fetchUserProfile = async (token) => {
+  const fetchUserProfile = async (currentToken = token) => {
     try {
       const response = await axios.get(AUTH_API.PROFILE, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${currentToken}`,
         },
       });
       setUser(response.data);
     } catch (error) {
-      console.error('Error fetching profile:', error);
       localStorage.removeItem('token');
+      setToken(null);
+      setUser(null);
       navigate('/login');
     }
   };
@@ -38,35 +54,43 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await axios.post(AUTH_API.LOGIN, { username, password });
       localStorage.setItem('token', response.data.token);
-      fetchUserProfile(response.data.token); // Safe to refetch after login
+      setToken(response.data.token);
       navigate('/');
-      window.location.reload(); // Reload statefully
     } catch (error) {
-      console.error('Error during login:', error);
+      // Optionally handle login error
     }
   };
 
-  const signup = async (username, password) => {
+  const signup = async (formData) => {
     try {
-      const response = await axios.post(AUTH_API.SIGNUP, { username, password });
-      console.log('Signup response:', response);
+      await axios.post(AUTH_API.SIGNUP, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
       navigate('/login');
     } catch (error) {
-      console.error('Error during signup:', error);
       if (error.response?.status === 409) {
-        console.error('User already exists.');
+        // Optionally handle user already exists
       }
     }
   };
 
   const signOut = () => {
     localStorage.removeItem('token');
+    setToken(null);
     setUser(null);
     navigate('/login');
   };
 
+  const refreshUser = () => {
+    if (token) {
+      fetchUserProfile(token);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, signup, signOut }}>
+    <AuthContext.Provider value={{ user, token, login, signup, signOut, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
